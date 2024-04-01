@@ -1,4 +1,3 @@
-import sys
 import math
 import random
 
@@ -57,9 +56,11 @@ OTHER = {"help", "exit", "clr", "dump"}
 def evaluate_rpn(expression):
     global stack
 
-    for token in expression.split():
+    for token in expression:
+        #  only put numerical values in the stack
         if is_valid_number(token):
             stack.append(float(token))
+        #  perform operation for non numeric values
         elif token in ARITHMETIC:
             if not perform_arithmetic_operation(token):
                 return None
@@ -73,29 +74,42 @@ def evaluate_rpn(expression):
             if not perform_bitwise_function(token):
                 return None
         elif token in CONSTANTS:
-            handle_constant(token)
+            if not handle_constant(token):
+                return None
         elif token in OTHER:
             handle_other(token)
         else:
             print("Error: Invalid token", token)
             return None
 
-    if len(stack) != 1:
-        stack.clear()
-        return None
-
-    return stack[0]
+    return stack
 
 
 def handle_constant(token):
     if token == "pi":
-        stack.append(math.pi)
+        try:
+            stack.append(math.pi)
+        except Exception as e:
+            print(f"Operational error: {e}")
+            return False
     elif token == "e":
-        stack.append(math.e)
+        try:
+            stack.append(math.e)
+        except Exception as e:
+            print(f"Operational error: {e}")
+            return False
     elif token == "rand":
-        float_min = sys.float_info.min
-        float_max = sys.float_info.max
-        stack.append(random.uniform(float_min, float_max))
+        try:
+            # import sys
+            # float_min = sys.float_info.min  # way to big for practical use
+            # float_max = sys.float_info.max
+            float_min = -1000000000
+            float_max = 1000000000
+            stack.append(random.uniform(float_min, float_max))
+        except Exception as e:
+            print(f"Operational error: {e}")
+            return False
+    return True
 
 
 def handle_other(token):
@@ -105,8 +119,6 @@ def handle_other(token):
         exit(0)
     elif token == "clr":
         stack.clear()
-    elif token == "dump":
-        print(stack)
 
 
 def perform_arithmetic_operation(token):
@@ -155,7 +167,7 @@ def perform_mathematic_function(token):
     if token == "exp":
         return perform_unary_operation(math.exp)
     elif token == "fact":
-        return perform_unary_operation(perform_factorial_operation)
+        return perform_factorial_operation()
 
 
 def perform_bitwise_function(token):
@@ -178,7 +190,13 @@ def perform_unary_operation(operation):
         menu.show_error()
         return False
     operand = stack.pop()
-    stack.append(operation(operand))
+    try:
+        stack.append(operation(operand))
+    except Exception as e:
+        stack.append(operand)
+        print(f"Operational error: {e}")
+        return False
+
     return True
 
 
@@ -188,7 +206,13 @@ def perform_binary_operation(operation):
         return False
     operand2 = stack.pop()
     operand1 = stack.pop()
-    stack.append(operation(operand1, operand2))
+    try:
+        stack.append(operation(operand1, operand2))
+    except Exception as e:
+        stack.append(operand1)
+        stack.append(operand2)
+        print(f"Operational error: {e}")
+        return False
     return True
 
 
@@ -213,11 +237,18 @@ def perform_division_operation():
         menu.show_error()
         return False
     operand2 = stack.pop()
-    operand1 = stack.pop()
     if operand2 == 0:
         print("Error: Division by zero")
         return False
-    stack.append(operand1 / operand2)
+    # don't pop the stack completely until we are sure we can divide
+    operand1 = stack.pop()
+    try:
+        stack.append(operand1 / operand2)
+    except Exception as e:
+        stack.append(operand1)
+        stack.append(operand2)
+        print(f"Operational error: {e}")
+        return False
     return True
 
 
@@ -226,11 +257,23 @@ def perform_factorial_operation():
         menu.show_error()
         print("Error: Insufficient operands for operator !")
         return False
-    operand = stack.pop()
+    operand = stack[-1]
     if operand < 0 or not operand.is_integer():
         print("Error: Factorial undefined for negative numbers or non-integers")
         return False
-    stack.append(math.factorial(int(operand)))
+    if operand > 50:
+        print(
+            "Error: Factorial undefined for numbers greater "
+            "than 50 - computational restraints"
+        )
+        return False
+    try:
+        stack.pop()
+        stack.append(math.factorial(int(operand)))
+    except Exception as e:
+        stack.append(operand)
+        print(f"Operational error: {e}")
+        return False
     return True
 
 

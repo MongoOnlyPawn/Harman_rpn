@@ -37,7 +37,7 @@ Description:
     pi, e
 
   Other:
-    rand(random number)
+    rand(random number) -Billion to +Billion
 
 Examples:
   To evaluate the expression "(3 + 4) * 5", run:
